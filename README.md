@@ -75,3 +75,13 @@ All state-changing Socket.IO handlers perform runtime validation for object shap
 Production lifecycle logs are emitted as one-line JSON for room creation, closure, expiration, and game start. The logger removes tokens, player-token maps, and aim/sensor coordinates, bounds string values, and stays silent during tests unless `TEST_LOGS=1`.
 
 On `SIGTERM` or `SIGINT`, the server marks `/ready` unavailable, stops every room timer, informs and disconnects clients, closes the HTTP listener, and exits. Render uses `/ready` as its health-check path.
+
+## Public deployment
+
+The persistent Socket.IO backend runs at `https://rift-hunters.onrender.com`. Deploy the frontend repository to Vercel using the root `vercel.json`, then set this build-time environment variable for Production, Preview, and Development:
+
+```text
+VITE_SERVER_URL=https://rift-hunters.onrender.com
+```
+
+After Vercel assigns the final domain, set Render's `CLIENT_ORIGIN` to that exact origin (for example `https://rift-hunters.vercel.app`) and redeploy the backend. The SPA rewrite in `vercel.json` keeps `/display` and `/controller/:room` working on refresh.
