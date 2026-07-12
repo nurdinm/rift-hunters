@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: rift-hunters-server
+    runtime: node
+    buildCommand: npm install && npm run build -w @rift/server
+    startCommand: npm start -w @rift/server
+    healthCheckPath: /ready
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: CLIENT_ORIGIN
+        sync: false
+  - type: web
+    name: rift-hunters-client
+    runtime: static
+    buildCommand: npm install && npm run build -w @rift/client
+    staticPublishPath: apps/client/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_SERVER_URL
+        sync: false
