@@ -2,6 +2,8 @@ export type Cue = "shoot" | "hit" | "miss" | "combo" | "breach" | "countdown" | 
 
 let context: AudioContext | null = null;
 let muted = localStorage.getItem("rift-muted") === "true";
+let ambienceTimer: number | null = null;
+let ambienceStep = 0;
 
 function audio(): AudioContext | null {
   if (muted) return null;
@@ -51,8 +53,25 @@ export function play(cue: Cue): void {
   }
 }
 
+export function startAmbience(): void {
+  if (ambienceTimer !== null || muted) return;
+  const pulse = () => {
+    const notes = [55, 65.41, 73.42, 82.41];
+    tone(notes[ambienceStep++ % notes.length], 1.8, 0.018, 0, "sine");
+    tone(110, 0.35, 0.008, 0.55, "triangle");
+  };
+  pulse();
+  ambienceTimer = window.setInterval(pulse, 1600);
+}
+
+export function stopAmbience(): void {
+  if (ambienceTimer !== null) window.clearInterval(ambienceTimer);
+  ambienceTimer = null;
+}
+
 export function setMuted(value: boolean): void {
   muted = value;
+  if (muted) stopAmbience();
   localStorage.setItem("rift-muted", String(value));
 }
 

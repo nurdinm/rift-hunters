@@ -291,21 +291,21 @@ MVP selesai jika:
 - [x] Dua controller dapat bergabung sebagai pemain berbeda; uji dua HP fisik masih diperlukan.
 - [x] Gyroscope dapat menggerakkan crosshair.
 - [x] Touch fallback tersedia.
-- [ ] Trigger memiliki latency nyaman pada dua HP fisik.
+- [ ] **BLOCKED: physical QA** — trigger memiliki latency nyaman pada dua HP fisik.
 - [x] Webcam tampil di belakang game.
 - [x] Target merah, biru, dan combo berfungsi.
 - [x] Score, health, timer, dan game-over berjalan.
 - [x] Recenter dan reconnect controller berbasis token tersedia.
-- [ ] Game telah di-deploy ke URL HTTPS publik.
-- [ ] Satu ronde divalidasi end-to-end dengan laptop dan dua HP fisik.
+- [x] Game telah di-deploy ke URL HTTPS publik.
+- [ ] **BLOCKED: physical QA** — satu ronde divalidasi end-to-end dengan laptop dan dua HP fisik memakai `docs/DEVICE_QA.md`.
 
 ## 10. Status Implementasi per Fase
 
 ### Fase 0 - Validasi Teknis: Parsial
 
 - [x] Room, QR, aim, trigger, dan dua slot pemain diimplementasikan.
-- [ ] Uji dua HP fisik secara bersamaan.
-- [ ] Ukur latency dan kestabilan minimal 5 menit.
+- [ ] **BLOCKED: physical QA** — uji dua HP fisik secara bersamaan.
+- [ ] **BLOCKED: physical QA** — ukur latency dan kestabilan minimal 5 menit.
 
 ### Fase 1 - Fondasi Proyek: Selesai
 
@@ -320,7 +320,7 @@ MVP selesai jika:
 - [x] Motion onboarding dengan secure-context/permission diagnostics, auto-calibration, live beta/gamma, dan radar aim lokal.
 - [x] Sensor listener memakai auth refs terbaru sehingga Enable Motion sebelum/ketika reconnect tetap mengirim aim valid.
 - [x] Telemetry RTT controller dengan badge kualitas link GOOD/FAIR/POOR untuk playtest latency.
-- [ ] Tuning dead zone, smoothing, serta drift berdasarkan pengujian perangkat nyata.
+- [ ] **BLOCKED: physical QA** — tuning dead zone, smoothing, serta drift dari hasil runbook.
 
 ### Fase 3 - Display Laptop: Selesai untuk MVP
 
@@ -344,7 +344,7 @@ MVP selesai jika:
 
 - [x] Identitas visual, animasi target, scanline, flash, countdown, hasil akhir, dan vibration.
 - [x] Audio sintetis untuk hit, miss, combo, warning, countdown, start, dan finish serta kontrol mute.
-- [ ] Musik latar opsional; bukan blocker MVP.
+- [x] Musik latar ambient prosedural opsional, mengikuti fase game dan mute.
 - [x] Projectile trail, impact marker, dan graded camera shake berdasarkan hasil tembakan.
 - [x] Tutorial interaktif empat langkah yang tersinkron ke display dan controller.
 - [x] Ammo enam cell dan manual reload yang divalidasi server.
@@ -359,7 +359,7 @@ MVP selesai jika:
 - [x] Browser smoke test Home → Display tanpa refresh dan Controller → Player 01 join.
 - [x] Playwright E2E: Home → Display, dua controller terisolasi P1/P2, start game, dan touch aim → crosshair laptop.
 - [x] GitHub Actions CI menjalankan typecheck, unit/integration, Playwright E2E, dan build pada push/PR.
-- [ ] QA Chrome Android, Safari iOS, browser laptop, orientasi, dan rasio layar.
+- [ ] **BLOCKED: physical QA** — matriks Chrome Android, Safari iOS, browser laptop, orientasi, dan rasio layar.
 - [x] Structured JSON lifecycle logging dengan redaction data sensitif.
 - [x] Backend Socket.IO HTTPS di Render dan frontend HTTPS di Vercel.
 - [x] Smoke test production: room, CORS, Socket.IO, dan motion secure-context berjalan.
@@ -377,25 +377,25 @@ MVP selesai jika:
 ### P1 - Reliability dan Tests
 
 1. [x] Test deterministik countdown, timer victory, breach defeat, dan timer cleanup.
-2. Tambahkan end-to-end test browser untuk display dan controller.
+2. [x] End-to-end test browser untuk display dan dua controller.
 3. [x] Test cleanup TTL, disconnect, token reclaim, dan safe resume.
 4. [x] Validasi payload serta test state integrity untuk event malformed.
 5. [x] Structured JSON logging dengan redaction token dan data sensor.
 
 ### P2 - Polish
 
-1. Tambahkan musik latar opsional.
+1. [x] Musik latar ambient opsional.
 2. [x] Projectile trail, hit feedback, dan camera shake.
 3. [x] Tutorial interaktif tersinkron dengan panduan sesuai peran pemain.
 4. [x] Statistik hasil akhir per pemain: shots, hits, misses, accuracy, dan combo.
-5. Tuning difficulty berdasarkan playtest.
+5. **BLOCKED: physical QA** — tuning difficulty berdasarkan hasil satu ronde nyata.
 
 ### P3 - Deployment dan AR Lanjutan
 
-1. Deploy server dan client melalui HTTPS.
-2. Konfigurasikan CORS, monitoring, environment production, dan smoke test.
-3. Pertimbangkan Phaser jika scene makin kompleks.
-4. Pertimbangkan Three.js atau MindAR setelah gameplay 2D tervalidasi.
+1. [x] Deploy server dan client melalui HTTPS.
+2. [x] Konfigurasikan CORS, environment production, telemetry RTT, CI, dan smoke test otomatis.
+3. Post-MVP opsional: Phaser jika scene makin kompleks.
+4. Post-MVP opsional: Three.js atau MindAR setelah physical QA gameplay 2D lulus.
 
 ## 12. Verifikasi Terakhir
 
@@ -407,7 +407,7 @@ npm run test
 npm run build
 ```
 
-Verifikasi terakhir: **19 unit/integration test dalam 3 test file serta 1 Playwright E2E lulus**, diikuti typecheck seluruh workspace dan production build client/server.
+Verifikasi terakhir: **20 unit/integration test dalam 3 test file, 1 Playwright E2E, dan production smoke Render lulus**, diikuti typecheck seluruh workspace dan production build client/server.
 
 GitHub Actions Linux run `29221368435` selesai dengan status **success**. Backend Render `/ready` sehat dan frontend Vercel melayani deep route SPA dengan HTTPS.
 
@@ -422,6 +422,19 @@ Implementasi MVP software sudah feature-complete. Urutan kerja berikutnya:
 3. Catat latency, sensor drift, false-trigger shake, reconnect time, dan perbedaan Android/iOS.
 4. Tuning threshold, smoothing, dan difficulty hanya berdasarkan hasil playtest.
 5. Setelah gameplay tervalidasi, pertimbangkan AR 3D atau marker tracking sebagai fase pasca-MVP.
+
+## 14. Milestone Closure
+
+Semua milestone yang dapat diselesaikan melalui implementasi, automated tests, CI, deployment, dan remote production smoke telah selesai. Sisa checkbox sengaja berstatus **BLOCKED: physical QA**, bukan pekerjaan software yang tertunda:
+
+- Dua HP fisik dipakai bersamaan selama satu ronde.
+- Latency trigger dinilai nyaman pada kedua perangkat.
+- Stabilitas minimal lima menit diukur.
+- Drift/dead-zone/smoothing dituning dari pengukuran nyata.
+- Matriks Android Chrome dan iOS Safari dijalankan.
+- Difficulty dituning berdasarkan hasil ronde nyata.
+
+Gunakan `docs/DEVICE_QA.md`. Setelah hasil template diisi, hanya tuning berbasis data yang boleh mengubah konstanta motion/gameplay. Phaser, Three.js, dan MindAR adalah roadmap post-MVP opsional dan bukan blocker closure MVP.
 
 ---
 

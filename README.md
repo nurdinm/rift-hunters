@@ -85,3 +85,5 @@ VITE_SERVER_URL=https://rift-hunters.onrender.com
 ```
 
 After Vercel assigns the final domain, set Render's `CLIENT_ORIGIN` to that exact origin (for example `https://rift-hunters.vercel.app`) and redeploy the backend. The SPA rewrite in `vercel.json` keeps `/display` and `/controller/:room` working on refresh.
+
+Run `npm run smoke:production` to verify Render readiness, WebSocket room creation, P1/P2 allocation, aim propagation, RTT acknowledgement, and room cleanup against production. Physical sensor acceptance still requires the two-phone procedure in `docs/DEVICE_QA.md`.
