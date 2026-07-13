@@ -71,7 +71,7 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus }
               return { marks, screenX, index, pinch: distance(index, thumb) < 0.055, fist: [8, 12, 16, 20].every((tip) => distance(marks[tip], wrist) < 0.34) };
             }).sort((a, b) => a.screenX - b.screenX);
             const tracked: TrackedHand[] = found.slice(0, 2).map((hand, index) => {
-              const playerId = (index + 1) as PlayerId;
+              const playerId = found.length === 1 ? (hand.screenX < 0.5 ? 1 : 2) : (index + 1) as PlayerId;
               const previous = smooth.current[playerId];
               const next = { x: previous.x * 0.68 + hand.screenX * 0.32, y: previous.y * 0.68 + hand.index.y * 0.32 };
               smooth.current[playerId] = next;
