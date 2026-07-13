@@ -356,10 +356,12 @@ MVP selesai jika:
 - [x] Readiness endpoint dan graceful SIGTERM/SIGINT shutdown dengan room timer cleanup.
 - [x] Unit test game logic dan integration test lifecycle Socket.IO.
 - [x] Browser smoke test Home → Display tanpa refresh dan Controller → Player 01 join.
-- [ ] End-to-end test browser otomatis.
+- [x] Playwright E2E: Home → Display, dua controller terisolasi P1/P2, start game, dan touch aim → crosshair laptop.
+- [x] GitHub Actions CI menjalankan typecheck, unit/integration, Playwright E2E, dan build pada push/PR.
 - [ ] QA Chrome Android, Safari iOS, browser laptop, orientasi, dan rasio layar.
 - [x] Structured JSON lifecycle logging dengan redaction data sensitif.
-- [ ] Deployment HTTPS publik dan smoke test production.
+- [x] Backend Socket.IO HTTPS di Render dan frontend HTTPS di Vercel.
+- [x] Smoke test production: room, CORS, Socket.IO, dan motion secure-context berjalan.
 
 ## 11. Backlog Prioritas
 
@@ -412,8 +414,8 @@ Test otomatis mencakup scoring, kepemilikan target, combo window, statistik, wav
 
 Implementasi MVP software sudah feature-complete. Urutan kerja berikutnya:
 
-1. Deploy ke HTTPS publik.
-2. Jalankan smoke test laptop + dua HP fisik.
+1. [x] Deploy ke HTTPS publik.
+2. Jalankan smoke test lengkap laptop + dua HP fisik selama satu ronde.
 3. Catat latency, sensor drift, false-trigger shake, reconnect time, dan perbedaan Android/iOS.
 4. Tuning threshold, smoothing, dan difficulty hanya berdasarkan hasil playtest.
 5. Setelah gameplay tervalidasi, pertimbangkan AR 3D atau marker tracking sebagai fase pasca-MVP.
