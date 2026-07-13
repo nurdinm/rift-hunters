@@ -12,17 +12,19 @@ interface Props {
   socket: Socket<ServerToClientEvents, ClientToServerEvents>;
   video: React.RefObject<HTMLVideoElement | null>;
   onStatus: (status: string) => void;
+  retryKey: number;
 }
 
 const distance = (a: HandPoint, b: HandPoint) => Math.hypot(a.x - b.x, a.y - b.y);
 
-export function HandTracker({ active, roomCode, token, socket, video, onStatus }: Props) {
+export function HandTracker({ active, roomCode, token, socket, video, onStatus, retryKey }: Props) {
   const [hands, setHands] = useState<TrackedHand[]>([]);
   const sequence = useRef<Record<PlayerId, number>>({ 1: 0, 2: 0 });
   const smooth = useRef<Record<PlayerId, HandPoint>>({ 1: { x: 0.3, y: 0.5 }, 2: { x: 0.7, y: 0.5 } });
   const pinched = useRef<Record<PlayerId, boolean>>({ 1: false, 2: false });
   const fistSince = useRef<Record<PlayerId, number>>({ 1: 0, 2: 0 });
   const reloaded = useRef<Record<PlayerId, boolean>>({ 1: false, 2: false });
+  const presence = useRef("00");
 
   useEffect(() => {
     if (!active || !roomCode || !token) { setHands([]); return; }
@@ -36,7 +38,7 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus }
       try {
         onStatus("LOADING HAND MODEL");
         const { FilesetResolver, HandLandmarker } = await import("@mediapipe/tasks-vision");
-        const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm");
+        const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm");
         landmarker = await HandLandmarker.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
@@ -87,6 +89,11 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus }
               } else { fistSince.current[playerId] = 0; reloaded.current[playerId] = false; }
               return { playerId, ...next, pinch: hand.pinch, fist: hand.fist };
             });
+            const nextPresence = `${Number(tracked.some((hand) => hand.playerId === 1))}${Number(tracked.some((hand) => hand.playerId === 2))}`;
+            if (nextPresence !== presence.current) {
+              presence.current = nextPresence;
+              socket.emit("hand:presence", { roomCode, token, players: { 1: nextPresence[0] === "1", 2: nextPresence[1] === "1" } });
+            }
             for (const playerId of [1, 2] as PlayerId[]) if (!tracked.some((hand) => hand.playerId === playerId)) pinched.current[playerId] = false;
             setHands(tracked);
             onStatus(tracked.length === 2 ? "2 HANDS ONLINE" : `${tracked.length}/2 HANDS FOUND`);
@@ -96,7 +103,9 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus }
         detect();
       } catch (error) {
         console.error("Hand tracking failed", error);
-        onStatus("HAND TRACKING ERROR");
+        socket.emit("hand:presence", { roomCode, token, players: { 1: false, 2: false } });
+        const name = error instanceof DOMException ? error.name : "MODEL_ERROR";
+        onStatus(name === "NotAllowedError" ? "CAMERA PERMISSION DENIED" : name === "NotFoundError" ? "CAMERA NOT FOUND" : `HAND ERROR: ${name}`);
       }
     };
     void run();
@@ -104,13 +113,14 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus }
       cancelled = true;
       cancelAnimationFrame(frame);
       landmarker?.close();
+      socket.emit("hand:presence", { roomCode, token, players: { 1: false, 2: false } });
       if (ownsStream && stream && video.current?.srcObject === stream) {
         stream.getTracks().forEach((track) => track.stop());
         video.current.srcObject = null;
       }
       setHands([]);
     };
-  }, [active, roomCode, socket, token, video, onStatus]);
+  }, [active, roomCode, socket, token, video, onStatus, retryKey]);
 
   if (!active) return null;
   return <div className="hand-overlay" aria-hidden="true">

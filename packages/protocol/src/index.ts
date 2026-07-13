@@ -13,6 +13,7 @@ export interface ClientToServerEvents {
  "room:join": (d:{roomCode:string;role:"display"|"player";token?:string},cb:(r:JoinResult)=>void)=>void;
  "game:start": (d:{roomCode:string;token:string})=>void; "game:pause": (d:{roomCode:string;token:string})=>void; "game:restart": (d:{roomCode:string;token:string})=>void; "tutorial:set": (d:{roomCode:string;token:string;step:number})=>void; "room:close": (d:{roomCode:string;token:string})=>void;
  "control:set": (d:{roomCode:string;token:string;mode:ControlMode})=>void;
+ "hand:presence": (d:{roomCode:string;token:string;players:Record<PlayerId,boolean>})=>void;
  "hand:aim": (d:{roomCode:string;token:string;playerId:PlayerId;x:number;y:number;sequence:number})=>void;
  "hand:shoot": (d:{roomCode:string;token:string;playerId:PlayerId;sequence:number;clientTime:number})=>void;
  "hand:reload": (d:{roomCode:string;token:string;playerId:PlayerId})=>void;

@@ -447,7 +447,8 @@ AR marker tracking, world anchoring, dan occlusion tetap menjadi fase terpisah s
 - [x] Dua tangan sekaligus: sisi kiri layar P1, sisi kanan layar P2.
 - [x] Ujung telunjuk untuk aim dengan EMA smoothing.
 - [x] Pinch edge-trigger untuk fire dan fist hold 0.7 detik untuk reload.
-- [x] Overlay cursor/status gesture serta onboarding `2 HANDS ONLINE`.
+- [x] Overlay cursor/status gesture, zona kalibrasi P1/P2, error detail, retry, serta onboarding `2 HANDS ONLINE`.
+- [x] Presence authoritative: slot baru READY ketika tangan nyata terdeteksi; Start disabled saat model/kamera gagal atau tangan belum lengkap.
 - [x] Hand Mode dapat memulai dua-player game tanpa HP dan Phone Mode tetap menjadi fallback.
 - [x] Auth display-token, validation, rate limit, ammo, scoring, dan hit detection tetap authoritative server.
 - [x] Regression tests Hand Mode, rejection di Phone Mode, 3D canvas, dan E2E tanpa HP.
