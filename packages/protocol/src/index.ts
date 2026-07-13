@@ -14,6 +14,7 @@ export interface ClientToServerEvents {
  "controller:aim": (d:{roomCode:string;playerId:PlayerId;token:string;x:number;y:number;sequence:number})=>void;
  "controller:shoot": (d:{roomCode:string;playerId:PlayerId;token:string;sequence:number;clientTime:number})=>void;
  "controller:reload": (d:{roomCode:string;playerId:PlayerId;token:string})=>void;
+ "connection:ping": (d:{sentAt:number},cb:(r:{sentAt:number;serverAt:number})=>void)=>void;
 }
 export interface ShotEvent { playerId:PlayerId; hit:boolean; combo:boolean; x:number; y:number }
 export interface ServerToClientEvents { "room:state":(s:PublicRoom)=>void; "shot:result":(r:ShotEvent)=>void; "room:error":(m:string)=>void }

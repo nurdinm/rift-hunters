@@ -319,6 +319,7 @@ MVP selesai jika:
 - [x] Mapping orientasi, throttle input, recenter, trigger, vibration, status, dan touchpad fallback.
 - [x] Motion onboarding dengan secure-context/permission diagnostics, auto-calibration, live beta/gamma, dan radar aim lokal.
 - [x] Sensor listener memakai auth refs terbaru sehingga Enable Motion sebelum/ketika reconnect tetap mengirim aim valid.
+- [x] Telemetry RTT controller dengan badge kualitas link GOOD/FAIR/POOR untuk playtest latency.
 - [ ] Tuning dead zone, smoothing, serta drift berdasarkan pengujian perangkat nyata.
 
 ### Fase 3 - Display Laptop: Selesai untuk MVP
@@ -406,9 +407,11 @@ npm run test
 npm run build
 ```
 
-Verifikasi terakhir: **18 test dalam 3 test file lulus**, diikuti typecheck seluruh workspace dan production build client/server.
+Verifikasi terakhir: **19 unit/integration test dalam 3 test file serta 1 Playwright E2E lulus**, diikuti typecheck seluruh workspace dan production build client/server.
 
-Test otomatis mencakup scoring, kepemilikan target, combo window, statistik, wave, outcome victory/defeat, pause expiry, alokasi pemain, room penuh, reconnect display, close room, ammo/reload, malformed payload, disconnect/reclaim/resume, readiness, structured-log redaction, dan cleanup TTL. Verifikasi browser serta perangkat fisik masih harus dilakukan.
+GitHub Actions Linux run `29221368435` selesai dengan status **success**. Backend Render `/ready` sehat dan frontend Vercel melayani deep route SPA dengan HTTPS.
+
+Test otomatis mencakup scoring, kepemilikan target, combo window, statistik, wave, outcome victory/defeat, pause expiry, alokasi pemain, room penuh, reconnect display, close room, ammo/reload, malformed payload, disconnect/reclaim/resume, readiness, structured-log redaction, cleanup TTL, dua controller terisolasi, start game, serta touch aim ke crosshair laptop. QA sensor pada perangkat fisik masih harus dilakukan.
 
 ## 13. Next Milestone
 

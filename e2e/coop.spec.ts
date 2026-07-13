@@ -19,6 +19,7 @@ test("display links two controllers and receives touch aim", async ({ browser })
 
   await p1.goto(`/controller/${code}`);
   await expect(p1.getByRole("heading", { name: "PLAYER 01" })).toBeVisible();
+  await expect(p1.locator(".controller-status p")).toContainText(/LINK (GOOD|FAIR|POOR) \d+ms/);
   await p2.goto(`/controller/${code}`);
   await expect(p2.getByRole("heading", { name: "PLAYER 02" })).toBeVisible();
   await expect(display.getByRole("button", { name: "INITIATE BREACH" })).toBeEnabled();
