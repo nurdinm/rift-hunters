@@ -90,6 +90,8 @@ Run `npm run smoke:production` to verify Render readiness, WebSocket room creati
 
 ## Hand Mode (no phones)
 
-Open the Display, select `ENABLE HAND MODE`, allow webcam access, and stand where both hands are visible. The left side of the mirrored screen controls P1; the right side controls P2. Point with an index finger to aim, pinch thumb and index finger once to fire, and hold a fist for 0.7 seconds to reload. Start the game after the status reports `2 HANDS ONLINE`.
+Open the Display, select `ENABLE HAND MODE`, allow webcam access, and stand where both hands are visible. Follow the live four-step training strip: show both hands, move an index finger to confirm aim, pinch once to confirm fire, then hold a fist for 0.8 seconds to confirm reload. The left side of the mirrored screen controls P1; the right side controls P2. Start the game after the status reports `2 HANDS ONLINE`.
+
+Hand gestures are normalized against palm size so they work across camera distances. Pinch hysteresis prevents repeated shots while fingers remain together, a 350 ms presence grace prevents READY flicker, and adaptive aim smoothing combines a jitter dead zone with faster response for deliberate movement.
 
 MediaPipe Hand Landmarker is lazy-loaded only when Hand Mode is selected. Its WASM and model are downloaded from the official CDN, then webcam frames are processed locally in the browser and are never sent to the Rift server. Phone Mode remains available as the fallback.

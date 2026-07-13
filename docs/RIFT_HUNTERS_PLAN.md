@@ -446,7 +446,10 @@ AR marker tracking, world anchoring, dan occlusion tetap menjadi fase terpisah s
 - [x] MediaPipe Hand Landmarker lazy-loaded dengan model/WASM CDN dan pemrosesan frame lokal.
 - [x] Dua tangan sekaligus: sisi kiri layar P1, sisi kanan layar P2.
 - [x] Ujung telunjuk untuk aim dengan EMA smoothing.
-- [x] Pinch edge-trigger untuk fire dan fist hold 0.7 detik untuk reload.
+- [x] Pinch relatif terhadap palm scale dengan hysteresis untuk fire dan fist tervalidasi multi-joint selama 0.8 detik untuk reload.
+- [x] Adaptive aim smoothing: dead zone jitter, respons medium, dan fast catch-up untuk gerakan besar.
+- [x] Presence grace 350 ms agar readiness tidak berkedip saat landmark hilang sesaat.
+- [x] Tutorial Hand Mode interaktif empat langkah berdasarkan gesture nyata: dua tangan, aim travel, pinch, dan fist.
 - [x] Overlay cursor/status gesture, zona kalibrasi P1/P2, error detail, retry, serta onboarding `2 HANDS ONLINE`.
 - [x] Presence authoritative: slot baru READY ketika tangan nyata terdeteksi; Start disabled saat model/kamera gagal atau tangan belum lengkap.
 - [x] Hand Mode dapat memulai dua-player game tanpa HP dan Phone Mode tetap menjadi fallback.
