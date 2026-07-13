@@ -24,13 +24,14 @@ Run at least these combinations:
 1. Laptop creates a room and enables webcam.
 2. Both phones scan the same QR and receive distinct P1/P2 roles.
 3. Record each controller's RTT badge at start, midpoint, and finish.
-4. Enable motion, verify beta/gamma changes, then verify local radar and laptop crosshair move together.
-5. Move to all four corners; note inversion, clipping, dead zones, and drift.
-6. Recenter both controllers three times.
-7. Shoot red with P1, cyan with P2, and three green combo targets together.
-8. Empty and reload both magazines manually; then test one shake reload each.
-9. Disconnect Wi-Fi on one phone for five seconds, reconnect, and verify auto-pause/token reclaim/safe resume.
-10. Finish one uninterrupted round and capture debrief.
+4. Rotate both phones to landscape; verify touchpad and Fire remain visible with no page scroll.
+5. Enable motion, verify beta/gamma changes, then verify local radar and laptop crosshair move together.
+6. Move to all four corners; note inversion, clipping, dead zones, and drift.
+7. Recenter both controllers three times.
+8. Shoot red with P1, cyan with P2, and three green combo targets together.
+9. Empty and reload both magazines manually; then test one shake reload each.
+10. Disconnect Wi-Fi on one phone for five seconds, reconnect, and verify auto-pause/token reclaim/safe resume.
+11. Finish one uninterrupted round and capture debrief.
 
 ## Acceptance criteria
 

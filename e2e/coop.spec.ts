@@ -20,6 +20,10 @@ test("display links two controllers and receives touch aim", async ({ browser })
   await p1.goto(`/controller/${code}`);
   await expect(p1.getByRole("heading", { name: "PLAYER 01" })).toBeVisible();
   await expect(p1.locator(".controller-status p")).toContainText(/LINK (GOOD|FAIR|POOR) \d+ms/);
+  await p1.setViewportSize({ width: 844, height: 390 });
+  await expect.poll(() => p1.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, width: innerWidth, scrollHeight: document.documentElement.scrollHeight, height: innerHeight }))).toEqual({ scrollWidth: 844, width: 844, scrollHeight: 390, height: 390 });
+  await expect(p1.getByRole("button", { name: "FIRE" })).toBeInViewport();
+  await expect(p1.getByTestId("touchpad")).toBeInViewport();
   await p2.goto(`/controller/${code}`);
   await expect(p2.getByRole("heading", { name: "PLAYER 02" })).toBeVisible();
   await expect(display.getByRole("button", { name: "INITIATE BREACH" })).toBeEnabled();

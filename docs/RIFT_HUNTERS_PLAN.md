@@ -320,6 +320,7 @@ MVP selesai jika:
 - [x] Motion onboarding dengan secure-context/permission diagnostics, auto-calibration, live beta/gamma, dan radar aim lokal.
 - [x] Sensor listener memakai auth refs terbaru sehingga Enable Motion sebelum/ketika reconnect tetap mengirim aim valid.
 - [x] Telemetry RTT controller dengan badge kualitas link GOOD/FAIR/POOR untuk playtest latency.
+- [x] Controller landscape dua panel dengan safe-area notch, compact-height layout, dan regression test anti-overflow 844×390.
 - [ ] **BLOCKED: physical QA** — tuning dead zone, smoothing, serta drift dari hasil runbook.
 
 ### Fase 3 - Display Laptop: Selesai untuk MVP
