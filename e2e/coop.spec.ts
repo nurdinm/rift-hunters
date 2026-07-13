@@ -30,6 +30,7 @@ test("display links two controllers and receives touch aim", async ({ browser })
 
   await display.getByRole("button", { name: "INITIATE BREACH" }).click();
   await expect(display.getByTestId("crosshair-1")).toBeVisible({ timeout: 6_000 });
+  await expect(display.locator(".rift-scene canvas")).toBeVisible({ timeout: 6_000 });
 
   const before = await display.getByTestId("crosshair-1").evaluate((node) => (node as HTMLElement).style.left);
   const pad = p1.getByTestId("touchpad");

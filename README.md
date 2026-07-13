@@ -87,3 +87,9 @@ VITE_SERVER_URL=https://rift-hunters.onrender.com
 After Vercel assigns the final domain, set Render's `CLIENT_ORIGIN` to that exact origin (for example `https://rift-hunters.vercel.app`) and redeploy the backend. The SPA rewrite in `vercel.json` keeps `/display` and `/controller/:room` working on refresh.
 
 Run `npm run smoke:production` to verify Render readiness, WebSocket room creation, P1/P2 allocation, aim propagation, RTT acknowledgement, and room cleanup against production. Physical sensor acceptance still requires the two-phone procedure in `docs/DEVICE_QA.md`.
+
+## Hand Mode (no phones)
+
+Open the Display, select `ENABLE HAND MODE`, allow webcam access, and stand where both hands are visible. The left side of the mirrored screen controls P1; the right side controls P2. Point with an index finger to aim, pinch thumb and index finger once to fire, and hold a fist for 0.7 seconds to reload. Start the game after the status reports `2 HANDS ONLINE`.
+
+MediaPipe Hand Landmarker is lazy-loaded only when Hand Mode is selected. Its WASM and model are downloaded from the official CDN, then webcam frames are processed locally in the browser and are never sent to the Rift server. Phone Mode remains available as the fallback.

@@ -329,7 +329,7 @@ MVP selesai jika:
 - [x] Close room manual pada protocol/server dan reconnect display setelah refresh.
 - [x] Automatic display/controller rejoin setelah Socket.IO reconnect serta offline watchdog UI.
 - [x] Routing React reaktif tanpa refresh dan single-owner join lifecycle yang aman dari duplicate effect.
-- [x] Auto-pause ketika controller terputus dan resume hanya setelah kedua pemain kembali.
+- [x] Auto-pause ketika controller terputus dan auto-resume setelah token pemain direclaim serta kedua pemain online; pause manual Display tetap manual.
 - [x] Error recovery inti: reconnect otomatis, offline watchdog, auto-pause, dan safe resume.
 - [x] Runtime validation untuk room, auth, player, aim, shoot, reload, dan tutorial payload.
 
@@ -424,7 +424,38 @@ Implementasi MVP software sudah feature-complete. Urutan kerja berikutnya:
 4. Tuning threshold, smoothing, dan difficulty hanya berdasarkan hasil playtest.
 5. Setelah gameplay tervalidasi, pertimbangkan AR 3D atau marker tracking sebagai fase pasca-MVP.
 
-## 14. Milestone Closure
+## 14. Fase 7 — 3D Rift Arena
+
+Tujuan fase ini adalah meningkatkan depth dan spectacle pada Display laptop tanpa mengganti protocol aim atau server-authoritative hit detection yang sudah stabil.
+
+- [x] React Three Fiber renderer lazy-loaded dengan WebGL fallback ke arena 2D.
+- [x] Portal 3D prosedural, lighting, particles, dan parallax depth.
+- [x] Target 3D merah/cyan/combo mengikuti koordinat serta radius authoritative server.
+- [x] Webcam tetap menjadi background dunia nyata di belakang canvas transparan.
+- [x] Crosshair dan HUD tetap DOM overlay untuk presisi serta accessibility.
+- [x] Scene pause/finish menghentikan animasi berat dan tidak mengganggu reconnect.
+- [ ] Desktop visual QA dan performance budget minimum 30 FPS pada laptop target.
+
+Arsitektur: server tetap mengirim target normalized `x/y/radius`; client memproyeksikannya ke world-space Three.js. Klik/tembakan tidak menggunakan raycast client. Dengan demikian visual 3D tidak dapat mengubah hasil hit dan tetap kompatibel dengan controller lama.
+
+AR marker tracking, world anchoring, dan occlusion tetap menjadi fase terpisah setelah physical QA 2D/3D lulus.
+
+## 15. Fase 8 — Hand Tracking Controller
+
+- [x] Mode kontrol server-authoritative `phone` atau `hand`, hanya dapat dipilih Display saat lobby.
+- [x] MediaPipe Hand Landmarker lazy-loaded dengan model/WASM CDN dan pemrosesan frame lokal.
+- [x] Dua tangan sekaligus: sisi kiri layar P1, sisi kanan layar P2.
+- [x] Ujung telunjuk untuk aim dengan EMA smoothing.
+- [x] Pinch edge-trigger untuk fire dan fist hold 0.7 detik untuk reload.
+- [x] Overlay cursor/status gesture serta onboarding `2 HANDS ONLINE`.
+- [x] Hand Mode dapat memulai dua-player game tanpa HP dan Phone Mode tetap menjadi fallback.
+- [x] Auth display-token, validation, rate limit, ammo, scoring, dan hit detection tetap authoritative server.
+- [x] Regression tests Hand Mode, rejection di Phone Mode, 3D canvas, dan E2E tanpa HP.
+- [ ] **BLOCKED: physical QA** — tuning threshold pinch/fist, pencahayaan, jarak kamera, dan identitas tangan bersilang pada webcam nyata.
+
+Privasi: video webcam tidak dikirim ke server. Browser hanya mengirim normalized aim dan gesture event. Model/WASM pertama kali memerlukan koneksi ke CDN MediaPipe.
+
+## 16. Milestone Closure
 
 Semua milestone yang dapat diselesaikan melalui implementasi, automated tests, CI, deployment, dan remote production smoke telah selesai. Sisa checkbox sengaja berstatus **BLOCKED: physical QA**, bukan pekerjaan software yang tertunda:
 

@@ -25,6 +25,7 @@ export function initialState(code: string): GameState {
     code,
     phase: "lobby",
     outcome: null,
+    controlMode: "phone",
     players: { 1: false, 2: false },
     aims: {
       1: { x: 0.3, y: 0.5, sequence: 0 },
