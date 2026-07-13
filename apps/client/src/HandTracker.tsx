@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { PlayerId } from "@rift/protocol";
 import type { Socket } from "socket.io-client";
 import type { ClientToServerEvents, ServerToClientEvents } from "@rift/protocol";
-import { assignPlayers, isFist, nextPinch, pinchRatio, smoothAim } from "./handMath";
+import { assignPlayers, isFist, nextPinch, pinchRatio, smoothAim, isOpenPalm, detectSwipe, isThumbsUp } from "./handMath";
+import type { Point } from "./handMath";
 
 interface HandPoint { x: number; y: number }
 interface TrackedHand extends HandPoint { playerId: PlayerId; pinch: boolean; fist: boolean }
@@ -30,6 +31,11 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus, 
   const lastSeen = useRef<Record<PlayerId, number>>({ 1: 0, 2: 0 });
   const lastRaw = useRef<Partial<Record<PlayerId, HandPoint>>>({});
   const aimTravel = useRef(0);
+  const ghostSince = useRef<Record<PlayerId, number>>({ 1: 0, 2: 0 });
+  const lastPalmPos = useRef<Record<PlayerId, Point>>({ 1: { x: 0, y: 0 }, 2: { x: 0, y: 0 } });
+  const palmActive = useRef<Record<PlayerId, boolean>>({ 1: false, 2: false });
+  const lastPinchTime = useRef<Record<PlayerId, number>>({ 1: 0, 2: 0 });
+  const thumbsUpCooldown = useRef(0);
 
   useEffect(() => {
     if (!active || !roomCode || !token) { setHands([]); return; }
@@ -62,9 +68,9 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus, 
           },
           runningMode: "VIDEO",
           numHands: 2,
-          minHandDetectionConfidence: 0.55,
-          minHandPresenceConfidence: 0.5,
-          minTrackingConfidence: 0.5,
+          minHandDetectionConfidence: 0.45,
+          minHandPresenceConfidence: 0.45,
+          minTrackingConfidence: 0.6,
         });
         if (cancelled) return;
         const element = video.current;
@@ -78,10 +84,12 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus, 
         await element.play();
         onStatus("SHOW TWO HANDS");
         let lastVideoTime = -1;
+        let frameTimes: number[] = [];
         const detect = () => {
           if (cancelled || !landmarker) return;
           if (element.readyState >= 2 && element.currentTime !== lastVideoTime) {
             lastVideoTime = element.currentTime;
+            const frameStart = performance.now();
             const result = landmarker.detectForVideo(element, performance.now());
             const found = (result.landmarks ?? []).map((marks) => {
               const index = marks[8];
@@ -90,6 +98,7 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus, 
             }).sort((a, b) => a.screenX - b.screenX);
             if (found.length === 2) completeTraining("hands");
             const players = assignPlayers(found.map((hand) => hand.screenX));
+            const now = performance.now();
             const tracked: TrackedHand[] = found.slice(0, 2).map((hand, index) => {
               const playerId = players[index] as PlayerId;
               const raw = { x: hand.screenX, y: hand.index.y };
@@ -119,9 +128,54 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus, 
                   if (trainingRef.current.pinch) completeTraining("fist");
                 }
               } else { fistSince.current[playerId] = 0; reloaded.current[playerId] = false; }
+
+              const openPalm = isOpenPalm(hand.marks);
+              if (openPalm) {
+                palmActive.current[playerId] = true;
+                const prev = lastPalmPos.current[playerId];
+                lastPalmPos.current[playerId] = { x: hand.screenX, y: hand.index.y };
+                if (detectSwipe(prev, { x: hand.screenX, y: hand.index.y }, now - (palmActive.current[playerId] ? 16 : 1000))) {
+                  socket.emit("hand:ability", { roomCode, token, playerId });
+                }
+              } else {
+                palmActive.current[playerId] = false;
+              }
+
+              if (pinch && !pinched.current[playerId]) {
+                lastPinchTime.current[playerId] = performance.now();
+              }
+
+              const other = playerId === 1 ? 2 : 1;
+              if (pinch && pinched.current[other]) {
+                const dt = Math.abs(performance.now() - lastPinchTime.current[other]);
+                if (dt <= 200 && found.length === 2) {
+                  socket.emit("hand:super", { roomCode, token });
+                }
+              }
+
+              if (isThumbsUp(hand.marks) && performance.now() - thumbsUpCooldown.current > 2000) {
+                thumbsUpCooldown.current = performance.now();
+                socket.emit("hand:togglePause", { roomCode, token });
+              }
+
               return { playerId, ...next, pinch, fist };
             });
-            const now = performance.now();
+            const GHOST_MS = 500;
+            for (const playerId of [1, 2] as PlayerId[]) {
+              const seen = tracked.some(h => h.playerId === playerId);
+              if (seen) {
+                ghostSince.current[playerId] = 0;
+              } else if (lastSeen.current[playerId] > 0) {
+                const lost = now - lastSeen.current[playerId];
+                if (ghostSince.current[playerId] === 0) ghostSince.current[playerId] = now;
+                if (lost < GHOST_MS) {
+                  const gs = smooth.current[playerId];
+                  tracked.push({ playerId, ...gs, pinch: false, fist: false });
+                } else {
+                  lastSeen.current[playerId] = 0;
+                }
+              }
+            }
             const nextPresence = `${Number(now-lastSeen.current[1]<350)}${Number(now-lastSeen.current[2]<350)}`;
             if (nextPresence !== presence.current) {
               presence.current = nextPresence;
@@ -130,6 +184,13 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus, 
             for (const playerId of [1, 2] as PlayerId[]) if (!tracked.some((hand) => hand.playerId === playerId)) pinched.current[playerId] = false;
             setHands(tracked);
             onStatus(tracked.length === 2 ? "2 HANDS ONLINE" : `${tracked.length}/2 HANDS FOUND`);
+            const frameEnd = performance.now();
+            frameTimes.push(frameEnd - frameStart);
+            if (frameTimes.length > 60) frameTimes.shift();
+            const avgFrame = frameTimes.reduce((a, b) => a + b, 0) / frameTimes.length;
+            if (frameTimes.length >= 30 && avgFrame > 66) {
+              onStatus("WARNING: LOW LIGHT — IMPROVE LIGHTING");
+            }
           }
           frame = requestAnimationFrame(detect);
         };
