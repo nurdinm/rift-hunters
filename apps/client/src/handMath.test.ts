@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assignPlayers, isFist, nextPinch, pinchRatio, smoothAim, type Point } from "./handMath";
+import { assignPlayers, isFist, isOpenPalm, isThumbsUp, isTwoHandPinch, nextPinch, pinchRatio, smoothAim, detectSwipe, type Point } from "./handMath";
 
 const hand = (scale = 1): Point[] => Array.from({ length: 21 }, () => ({ x: 0, y: 0 })).map((point, index) => ({ ...point, x: index * 0.001 * scale }));
 
@@ -43,5 +43,69 @@ describe("hand gesture math", () => {
     expect(isFist(marks)).toBe(true);
     marks[8] = { x: 0, y: 0.35 }; marks[12] = { x: 0, y: 0.35 };
     expect(isFist(marks)).toBe(false);
+  });
+});
+
+describe("open palm detection", () => {
+  it("detects open palm when fingertips are far from wrist", () => {
+    const marks = hand();
+    marks[0] = { x: 0, y: 0 }; marks[9] = { x: 0, y: 0.2 };
+    marks[8] = { x: 0, y: 0.5 }; marks[12] = { x: 0.1, y: 0.5 };
+    marks[16] = { x: 0.2, y: 0.5 }; marks[20] = { x: -0.1, y: 0.5 };
+    marks[4] = { x: -0.05, y: 0.3 };
+    expect(isOpenPalm(marks)).toBe(true);
+  });
+
+  it("rejects closed hand as open palm", () => {
+    const marks = hand();
+    marks[0] = { x: 0, y: 0 }; marks[9] = { x: 0, y: 0.2 };
+    marks[8] = { x: 0, y: 0.08 }; marks[12] = { x: 0.1, y: 0.08 };
+    marks[16] = { x: 0.2, y: 0.08 }; marks[20] = { x: -0.1, y: 0.08 };
+    marks[4] = { x: -0.05, y: 0.1 };
+    expect(isOpenPalm(marks)).toBe(false);
+  });
+});
+
+describe("swipe detection", () => {
+  it("detects fast horizontal movement", () => {
+    expect(detectSwipe({ x: 0.3, y: 0.5 }, { x: 0.55, y: 0.51 }, 200)).toBe(true);
+  });
+  it("rejects slow movement", () => {
+    expect(detectSwipe({ x: 0.3, y: 0.5 }, { x: 0.35, y: 0.51 }, 200)).toBe(false);
+  });
+  it("rejects movement that takes too long", () => {
+    expect(detectSwipe({ x: 0.3, y: 0.5 }, { x: 0.55, y: 0.51 }, 1000)).toBe(false);
+  });
+});
+
+describe("thumbs up detection", () => {
+  it("detects thumb above all fingertips", () => {
+    const marks = hand();
+    marks[0] = { x: 0, y: 0 }; marks[9] = { x: 0, y: 0.15 };
+    marks[4] = { x: -0.05, y: 0.01 };
+    marks[8] = { x: 0, y: 0.12 }; marks[12] = { x: 0.1, y: 0.12 };
+    marks[16] = { x: 0.2, y: 0.12 }; marks[20] = { x: -0.1, y: 0.12 };
+    expect(isThumbsUp(marks)).toBe(true);
+  });
+
+  it("rejects thumb below fingertips", () => {
+    const marks = hand();
+    marks[0] = { x: 0, y: 0 }; marks[9] = { x: 0, y: 0.15 };
+    marks[4] = { x: -0.05, y: 0.15 };
+    marks[8] = { x: 0, y: 0.08 }; marks[12] = { x: 0.1, y: 0.08 };
+    marks[16] = { x: 0.2, y: 0.08 }; marks[20] = { x: -0.1, y: 0.08 };
+    expect(isThumbsUp(marks)).toBe(false);
+  });
+});
+
+describe("two-hand pinch", () => {
+  it("detects simultaneous pinch within 200ms", () => {
+    expect(isTwoHandPinch(true, true, 150)).toBe(true);
+  });
+  it("rejects when only one hand pinches", () => {
+    expect(isTwoHandPinch(true, false, 100)).toBe(false);
+  });
+  it("rejects when timing is too far apart", () => {
+    expect(isTwoHandPinch(true, true, 300)).toBe(false);
   });
 });

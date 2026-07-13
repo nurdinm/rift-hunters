@@ -32,3 +32,25 @@ export function assignPlayers(xs: number[]): (1 | 2)[] {
   if (xs.length === 1) return [xs[0] < 0.5 ? 1 : 2];
   return xs.map((_, index) => (index + 1) as 1 | 2);
 }
+
+export function isOpenPalm(marks: Point[]): boolean {
+  const scale = palmScale(marks);
+  const tips = [4, 8, 12, 16, 20];
+  return tips.filter(tip => distance(marks[tip], marks[0]) / scale > 2.0).length >= 4;
+}
+
+export function detectSwipe(prev: Point, curr: Point, dt: number): boolean {
+  if (dt > 300 || dt <= 0) return false;
+  const dx = Math.abs(curr.x - prev.x);
+  return dx > 0.15;
+}
+
+export function isThumbsUp(marks: Point[]): boolean {
+  const thumbY = marks[4].y;
+  const tips = [8, 12, 16, 20];
+  return tips.every(tip => thumbY < marks[tip].y - 0.03) && distance(marks[4], marks[8]) / palmScale(marks) > 0.7;
+}
+
+export function isTwoHandPinch(p1Active: boolean, p2Active: boolean, dt: number): boolean {
+  return p1Active && p2Active && dt <= 200;
+}
