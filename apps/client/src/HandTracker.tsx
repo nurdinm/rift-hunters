@@ -2,26 +2,27 @@ import { useEffect, useRef, useState } from "react";
 import type { PlayerId } from "@rift/protocol";
 import type { Socket } from "socket.io-client";
 import type { ClientToServerEvents, ServerToClientEvents } from "@rift/protocol";
-import { assignPlayers, isFist, nextPinch, pinchRatio, smoothAim, isOpenPalm, detectSwipe, isThumbsUp } from "./handMath";
+import { assignPlayers, isFist, nextPinch, pinchRatio, smoothAim, isOpenPalm, detectSwipe } from "./handMath";
 import type { Point } from "./handMath";
 
 interface HandPoint { x: number; y: number }
-interface TrackedHand extends HandPoint { playerId: PlayerId; pinch: boolean; fist: boolean }
-interface TrainingState { hands: boolean; aim: boolean; pinch: boolean; fist: boolean }
+interface TrackedHand extends HandPoint { playerId: PlayerId; pinch: boolean; fist: boolean; ability: boolean; landmarks: HandPoint[] | null }
+interface TrainingState { hands: boolean; aim: boolean; pinch: boolean; fist: boolean; ability: boolean; super: boolean }
 interface Props {
   active: boolean;
   roomCode: string;
   token: string;
+  mode: "coop" | "solo";
   socket: Socket<ServerToClientEvents, ClientToServerEvents>;
   video: React.RefObject<HTMLVideoElement | null>;
   onStatus: (status: string) => void;
   retryKey: number;
 }
 
-export function HandTracker({ active, roomCode, token, socket, video, onStatus, retryKey }: Props) {
+export function HandTracker({ active, roomCode, token, mode, socket, video, onStatus, retryKey }: Props) {
   const [hands, setHands] = useState<TrackedHand[]>([]);
-  const [training, setTraining] = useState<TrainingState>({ hands: false, aim: false, pinch: false, fist: false });
-  const trainingRef = useRef<TrainingState>({ hands: false, aim: false, pinch: false, fist: false });
+  const [training, setTraining] = useState<TrainingState>({ hands: false, aim: false, pinch: false, fist: false, ability: false, super: false });
+  const trainingRef = useRef<TrainingState>({ hands: false, aim: false, pinch: false, fist: false, ability: false, super: false });
   const sequence = useRef<Record<PlayerId, number>>({ 1: 0, 2: 0 });
   const smooth = useRef<Record<PlayerId, HandPoint>>({ 1: { x: 0.3, y: 0.5 }, 2: { x: 0.7, y: 0.5 } });
   const pinched = useRef<Record<PlayerId, boolean>>({ 1: false, 2: false });
@@ -33,13 +34,13 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus, 
   const aimTravel = useRef(0);
   const ghostSince = useRef<Record<PlayerId, number>>({ 1: 0, 2: 0 });
   const lastPalmPos = useRef<Record<PlayerId, Point>>({ 1: { x: 0, y: 0 }, 2: { x: 0, y: 0 } });
-  const palmActive = useRef<Record<PlayerId, boolean>>({ 1: false, 2: false });
+  const lastPalmTime = useRef<Record<PlayerId, number>>({ 1: 0, 2: 0 });
   const lastPinchTime = useRef<Record<PlayerId, number>>({ 1: 0, 2: 0 });
-  const thumbsUpCooldown = useRef(0);
+
 
   useEffect(() => {
     if (!active || !roomCode || !token) { setHands([]); return; }
-    const initialTraining: TrainingState = { hands: false, aim: false, pinch: false, fist: false };
+    const initialTraining: TrainingState = { hands: false, aim: false, pinch: false, fist: false, ability: false, super: false };
     trainingRef.current = initialTraining;
     setTraining(initialTraining);
     lastRaw.current = {};
@@ -96,10 +97,11 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus, 
               const screenX = 1 - index.x;
               return { marks, screenX, index };
             }).sort((a, b) => a.screenX - b.screenX);
-            if (found.length === 2) completeTraining("hands");
-            const players = assignPlayers(found.map((hand) => hand.screenX));
+            const handsToTrack = mode === "solo" ? found.slice(0, 1) : found.slice(0, 2);
+            if (handsToTrack.length === (mode === "solo" ? 1 : 2)) completeTraining("hands");
+            const players = assignPlayers(handsToTrack.map((hand) => hand.screenX));
             const now = performance.now();
-            const tracked: TrackedHand[] = found.slice(0, 2).map((hand, index) => {
+            const tracked: TrackedHand[] = handsToTrack.map((hand, index) => {
               const playerId = players[index] as PlayerId;
               const raw = { x: hand.screenX, y: hand.index.y };
               const priorRaw = lastRaw.current[playerId];
@@ -130,38 +132,42 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus, 
               } else { fistSince.current[playerId] = 0; reloaded.current[playerId] = false; }
 
               const openPalm = isOpenPalm(hand.marks);
+              let didAbility = false;
               if (openPalm) {
-                palmActive.current[playerId] = true;
                 const prev = lastPalmPos.current[playerId];
-                lastPalmPos.current[playerId] = { x: hand.screenX, y: hand.index.y };
-                if (detectSwipe(prev, { x: hand.screenX, y: hand.index.y }, now - (palmActive.current[playerId] ? 16 : 1000))) {
+                const curr = { x: hand.screenX, y: hand.index.y };
+                lastPalmPos.current[playerId] = curr;
+                const dt = lastPalmTime.current[playerId] > 0 ? now - lastPalmTime.current[playerId] : 999;
+                lastPalmTime.current[playerId] = now;
+                if (dt <= 300 && prev.x !== 0 && detectSwipe(prev, curr, dt)) {
                   socket.emit("hand:ability", { roomCode, token, playerId });
+                  didAbility = true;
+                  if (trainingRef.current.fist) completeTraining("ability");
                 }
               } else {
-                palmActive.current[playerId] = false;
+                lastPalmTime.current[playerId] = 0;
               }
 
               if (pinch && !pinched.current[playerId]) {
                 lastPinchTime.current[playerId] = performance.now();
               }
 
+              let didSuper = false;
               const other = playerId === 1 ? 2 : 1;
               if (pinch && pinched.current[other]) {
                 const dt = Math.abs(performance.now() - lastPinchTime.current[other]);
-                if (dt <= 200 && found.length === 2) {
+                if (dt <= 200 && found.length === 2 && mode === "coop") {
                   socket.emit("hand:super", { roomCode, token });
+                  didSuper = true;
+                  if (trainingRef.current.ability) completeTraining("super");
                 }
               }
 
-              if (isThumbsUp(hand.marks) && performance.now() - thumbsUpCooldown.current > 2000) {
-                thumbsUpCooldown.current = performance.now();
-                socket.emit("hand:togglePause", { roomCode, token });
-              }
-
-              return { playerId, ...next, pinch, fist };
+              const skeletonLandmarks = hand.marks.map(m => ({ x: 1 - m.x, y: m.y }));
+              return { playerId, ...next, pinch, fist, ability: didAbility, landmarks: skeletonLandmarks };
             });
             const GHOST_MS = 500;
-            for (const playerId of [1, 2] as PlayerId[]) {
+            for (const playerId of (mode === "solo" ? [1] : [1, 2]) as PlayerId[]) {
               const seen = tracked.some(h => h.playerId === playerId);
               if (seen) {
                 ghostSince.current[playerId] = 0;
@@ -170,20 +176,20 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus, 
                 if (ghostSince.current[playerId] === 0) ghostSince.current[playerId] = now;
                 if (lost < GHOST_MS) {
                   const gs = smooth.current[playerId];
-                  tracked.push({ playerId, ...gs, pinch: false, fist: false });
+                  tracked.push({ playerId, ...gs, pinch: false, fist: false, ability: false, landmarks: null });
                 } else {
                   lastSeen.current[playerId] = 0;
                 }
               }
             }
-            const nextPresence = `${Number(now-lastSeen.current[1]<350)}${Number(now-lastSeen.current[2]<350)}`;
+            const nextPresence = `${Number(now-lastSeen.current[1]<350)}${mode==="solo"?"1":Number(now-lastSeen.current[2]<350)}`;
             if (nextPresence !== presence.current) {
               presence.current = nextPresence;
               socket.emit("hand:presence", { roomCode, token, players: { 1: nextPresence[0] === "1", 2: nextPresence[1] === "1" } });
             }
-            for (const playerId of [1, 2] as PlayerId[]) if (!tracked.some((hand) => hand.playerId === playerId)) pinched.current[playerId] = false;
+            for (const playerId of (mode === "solo" ? [1] : [1, 2]) as PlayerId[]) if (!tracked.some((hand) => hand.playerId === playerId)) pinched.current[playerId] = false;
             setHands(tracked);
-            onStatus(tracked.length === 2 ? "2 HANDS ONLINE" : `${tracked.length}/2 HANDS FOUND`);
+            onStatus(mode === "solo" ? (tracked.length >= 1 ? "1 HAND ONLINE" : "SHOW HAND") : tracked.length === 2 ? "2 HANDS ONLINE" : `${tracked.length}/2 HANDS FOUND`);
             const frameEnd = performance.now();
             frameTimes.push(frameEnd - frameStart);
             if (frameTimes.length > 60) frameTimes.shift();
@@ -217,17 +223,33 @@ export function HandTracker({ active, roomCode, token, socket, video, onStatus, 
   }, [active, roomCode, socket, token, video, onStatus, retryKey]);
 
   if (!active) return null;
+  const isComplete = mode === "solo"
+    ? training.hands && training.aim && training.pinch && training.fist && training.ability
+    : training.hands && training.aim && training.pinch && training.fist && training.ability && training.super;
+  const skeletonConnections = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20]];
   return <div className="hand-overlay" aria-hidden="true">
-    <div className={`hand-training ${Object.values(training).every(Boolean) ? "complete" : ""}`}>
+    <div className={`hand-training ${isComplete ? "complete" : ""}`}>
       <small>HAND TRAINING</small>
-      <span className={training.hands ? "done" : "active"}>1. SHOW BOTH HANDS</span>
+      <span className={training.hands ? "done" : "active"}>1. {mode === "solo" ? "SHOW HAND" : "SHOW BOTH HANDS"}</span>
       <span className={training.aim ? "done" : training.hands ? "active" : ""}>2. MOVE INDEX TO AIM</span>
-      <span className={training.pinch ? "done" : training.aim ? "active" : ""}>3. PINCH ONCE TO FIRE</span>
-      <span className={training.fist ? "done" : training.pinch ? "active" : ""}>4. HOLD A FIST TO RELOAD</span>
-      {Object.values(training).every(Boolean) && <b>TRAINING COMPLETE</b>}
+      <span className={training.pinch ? "done" : training.aim ? "active" : ""}>3. PINCH TO FIRE</span>
+      <span className={training.fist ? "done" : training.pinch ? "active" : ""}>4. HOLD FIST TO RELOAD</span>
+      <span className={training.ability ? "done" : training.fist ? "active" : ""}>5. PALM SWIPE (SHIELD)</span>
+      {mode === "coop" && <span className={training.super ? "done" : training.ability ? "active" : ""}>6. BOTH PINCH (SUPER)</span>}
+      {isComplete && <b>TRAINING COMPLETE</b>}
     </div>
     {hands.map((hand) => <div key={hand.playerId} className={`hand-cursor p${hand.playerId} ${hand.pinch ? "pinch" : ""} ${hand.fist ? "fist" : ""}`} style={{ left: `${hand.x * 100}%`, top: `${hand.y * 100}%` }}>
-      <i /><b>P{hand.playerId}</b><span>{hand.fist ? "RELOAD" : hand.pinch ? "FIRE" : "AIM"}</span>
+      <i /><b>P{hand.playerId}</b><span>{hand.fist ? "RELOAD" : hand.pinch ? "FIRE" : hand.ability ? "SHIELD" : "AIM"}</span>
     </div>)}
+    <svg className="hand-skeletons" viewBox="0 0 100 100" preserveAspectRatio="none">
+      {hands.filter(h => h.landmarks).map((hand) => hand.landmarks!.map((lm, i) => {
+        const idx = i === 0 ? 0 : i;
+        return idx === 0 ? null : <circle key={`${hand.playerId}-${i}`} cx={lm.x * 100} cy={lm.y * 100} r={i % 4 === 0 ? 1.2 : 0.6} fill={hand.playerId === 1 ? "#ff4a3d" : "#29f2df"} opacity={0.6} />;
+      }))}
+      {hands.filter(h => h.landmarks).map((hand) => skeletonConnections.map(([a, b]) => {
+        const la = hand.landmarks![a], lb = hand.landmarks![b];
+        return <line key={`${hand.playerId}-${a}-${b}`} x1={la.x * 100} y1={la.y * 100} x2={lb.x * 100} y2={lb.y * 100} stroke={hand.playerId === 1 ? "#ff4a3d" : "#29f2df"} strokeWidth={0.3} opacity={0.35} />;
+      }))}
+    </svg>
   </div>;
 }

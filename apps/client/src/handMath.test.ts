@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assignPlayers, isFist, isOpenPalm, isThumbsUp, isTwoHandPinch, nextPinch, pinchRatio, smoothAim, detectSwipe, type Point } from "./handMath";
+import { assignPlayers, isFist, isOpenPalm, isTwoHandPinch, nextPinch, pinchRatio, smoothAim, detectSwipe, type Point } from "./handMath";
 
 const hand = (scale = 1): Point[] => Array.from({ length: 21 }, () => ({ x: 0, y: 0 })).map((point, index) => ({ ...point, x: index * 0.001 * scale }));
 
@@ -27,9 +27,9 @@ describe("hand gesture math", () => {
     expect(large.x).toBeCloseTo(0.645);
   });
 
-  it("assigns one hand by side and two hands from left to right", () => {
+  it("always assigns single hand as P1, two hands from left to right", () => {
     expect(assignPlayers([0.2])).toEqual([1]);
-    expect(assignPlayers([0.8])).toEqual([2]);
+    expect(assignPlayers([0.8])).toEqual([1]);
     expect(assignPlayers([0.2, 0.8])).toEqual([1, 2]);
   });
 
@@ -75,26 +75,6 @@ describe("swipe detection", () => {
   });
   it("rejects movement that takes too long", () => {
     expect(detectSwipe({ x: 0.3, y: 0.5 }, { x: 0.55, y: 0.51 }, 1000)).toBe(false);
-  });
-});
-
-describe("thumbs up detection", () => {
-  it("detects thumb above all fingertips", () => {
-    const marks = hand();
-    marks[0] = { x: 0, y: 0 }; marks[9] = { x: 0, y: 0.15 };
-    marks[4] = { x: -0.05, y: 0.01 };
-    marks[8] = { x: 0, y: 0.12 }; marks[12] = { x: 0.1, y: 0.12 };
-    marks[16] = { x: 0.2, y: 0.12 }; marks[20] = { x: -0.1, y: 0.12 };
-    expect(isThumbsUp(marks)).toBe(true);
-  });
-
-  it("rejects thumb below fingertips", () => {
-    const marks = hand();
-    marks[0] = { x: 0, y: 0 }; marks[9] = { x: 0, y: 0.15 };
-    marks[4] = { x: -0.05, y: 0.15 };
-    marks[8] = { x: 0, y: 0.08 }; marks[12] = { x: 0.1, y: 0.08 };
-    marks[16] = { x: 0.2, y: 0.08 }; marks[20] = { x: -0.1, y: 0.08 };
-    expect(isThumbsUp(marks)).toBe(false);
   });
 });
 
