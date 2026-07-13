@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import type { Aim, PlayerId, PublicRoom, Target, TargetKind } from "@rift/protocol";
+import type { Aim, GameMode, PlayerId, PublicRoom, Target, TargetKind } from "@rift/protocol";
 
 export const ROUND_SECONDS = 180;
 export const COMBO_WINDOW_MS = 1_000;
@@ -26,6 +26,7 @@ export function initialState(code: string): GameState {
     phase: "lobby",
     outcome: null,
     controlMode: "phone",
+    mode: "coop",
     players: { 1: false, 2: false },
     aims: {
       1: { x: 0.3, y: 0.5, sequence: 0 },
@@ -45,6 +46,8 @@ export function initialState(code: string): GameState {
     wave: 1,
     totalWaves: TOTAL_WAVES,
     tutorialStep: 0,
+    abilityCharges: 0,
+    superReady: false,
   };
 }
 
@@ -69,25 +72,16 @@ export function createTarget(
   now = Date.now(),
   random = Math.random,
   id: string = crypto.randomUUID(),
+  mode: GameMode = "coop",
 ): InternalTarget {
   const wave = waveForTime(timeLeft);
-  const pools: Record<number, TargetKind[]> = {
-    1: ["red", "red", "blue", "blue", "combo"],
-    2: ["red", "blue", "combo", "combo"],
-    3: ["red", "blue", "combo", "combo", "combo"],
-  };
+  if (mode === "solo") {
+    return { id, kind: "red", x: 0.12 + random() * 0.76, y: 0.18 + random() * 0.62, radius: 0.06, expiresAt: now + targetLifetime(wave), hits: [], hitAt: {} };
+  }
+  const pools: Record<number, TargetKind[]> = { 1: ["red", "red", "blue", "blue", "combo"], 2: ["red", "blue", "combo", "combo"], 3: ["red", "blue", "combo", "combo", "combo"] };
   const kinds = pools[wave];
   const kind = kinds[Math.floor(random() * kinds.length)];
-  return {
-    id,
-    kind,
-    x: 0.12 + random() * 0.76,
-    y: 0.18 + random() * 0.62,
-    radius: kind === "combo" ? 0.075 : 0.06,
-    expiresAt: now + targetLifetime(wave),
-    hits: [],
-    hitAt: {},
-  };
+  return { id, kind, x: 0.12 + random() * 0.76, y: 0.18 + random() * 0.62, radius: kind === "combo" ? 0.075 : 0.06, expiresAt: now + targetLifetime(wave), hits: [], hitAt: {} };
 }
 
 export function clampAim(aim: Aim): Aim | null {
@@ -143,4 +137,19 @@ export function resolveShot(
 
 export function shiftTargetExpiry(state: GameState, duration: number): void {
   if (state.target && duration > 0) state.target.expiresAt += duration;
+}
+
+export function useAbility(state: GameState): boolean {
+  if (state.abilityCharges <= 0) return false;
+  state.abilityCharges--;
+  state.health = Math.min(state.health + 1, 5);
+  return true;
+}
+
+export function useSuper(state: GameState, now = Date.now()): boolean {
+  if (!state.superReady || !state.target) return false;
+  state.superReady = false;
+  state.score += 500;
+  state.target = null;
+  return true;
 }
